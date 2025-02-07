@@ -78,13 +78,13 @@
 </head>
 <body>
   <h1>Fill in the Blanks Game</h1>
-  <p>Drag the correct word from the box below into the blank.</p>
+  <p>Drag the correct word from the box below into the blank in the sentence.</p>
   <button id="startButton" onclick="startGame()">Start Game</button>
   
   <!-- Question & Drop Zone -->
   <div id="questionContainer" style="display:none;">
     <p id="questionText">Fill in the blank:</p>
-    <div id="dropZone" ondragover="dragOver(event)" ondrop="drop(event)">_ _ _ _ _</div>
+    <div id="dropZone" ondragover="dragOver(event)" ondrop="drop(event)">Drop here</div>
   </div>
   
   <!-- Word Bank -->
@@ -102,6 +102,16 @@
     let currentIndex = 0;
     let score = 0;
     let currentWord = "";
+
+    // Define some natural conversation sentence templates.
+    // Each template should include the placeholder "{word}" where the blank should appear.
+    let templates = [
+      "Yesterday, I went to the {word}.",
+      "I really enjoy eating {word} for breakfast.",
+      "Do you think {word} is fun?",
+      "I was thinking about {word} when I saw the movie.",
+      "This morning, I saw a {word} on my way to work."
+    ];
 
     // Load words from the CSV file (comma-separated)
     function loadWords() {
@@ -145,15 +155,16 @@
       nextQuestion();
     }
 
-    // Set up the next question using one word from the CSV file.
+    // Set up the next question.
     function nextQuestion() {
-      // Clear any previous feedback and reset the drop zone.
+      // Clear previous feedback and reset the drop zone.
       document.getElementById("message").innerText = "";
       document.getElementById("nextButton").style.display = "none";
       
       let dropZone = document.getElementById("dropZone");
       dropZone.style.backgroundColor = "#fff";
-      dropZone.style.pointerEvents = "auto"; // allow drop
+      dropZone.style.pointerEvents = "auto"; // enable drop
+      dropZone.innerText = "Drop here";
       
       if (currentIndex >= shuffledWords.length) {
         document.getElementById("score").innerText = "Game Over! Your score: " + score + " out of " + shuffledWords.length;
@@ -162,21 +173,14 @@
         return;
       }
       
-      // Choose the current word.
+      // Choose the current word for this turn.
       currentWord = shuffledWords[currentIndex];
       
-      // Create a blank using underscores (one per letter).
-      let blank = "";
-      for (let i = 0; i < currentWord.length; i++) {
-        blank += "_ ";
-      }
+      // Pick a random sentence template and replace the placeholder with a blank.
+      let template = templates[Math.floor(Math.random() * templates.length)];
+      let questionSentence = template.replace("{word}", "______");
       
-      // Update question text to provide a hint (number of letters).
-      document.getElementById("questionText").innerText = 
-        "This word has " + currentWord.length + " letters. Drag the correct word into the blank:";
-      
-      // Set the drop zone to show the blank.
-      dropZone.innerText = blank.trim();
+      document.getElementById("questionText").innerText = questionSentence;
     }
 
     // Drag start event for draggable words.
@@ -184,7 +188,7 @@
       e.dataTransfer.setData("text/plain", e.target.innerText);
     }
 
-    // Allow dropping by preventing default.
+    // Allow dropping by preventing the default behavior.
     function dragOver(e) {
       e.preventDefault();
     }
@@ -198,7 +202,7 @@
       checkAnswer(droppedWord);
     }
 
-    // Check if the dragged word is correct.
+    // Check if the dragged word is the correct answer.
     function checkAnswer(selectedWord) {
       let dropZone = document.getElementById("dropZone");
       if (selectedWord === currentWord) {
