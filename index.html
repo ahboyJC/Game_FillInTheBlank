@@ -3,74 +3,209 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Spelling Game for Josh</title>
+  <title>Fill in the Blanks Game</title>
   <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Comic Neue', cursive, sans-serif; text-align: center; padding: 30px; background: linear-gradient(135deg, #fdfbfb, #ebedee); color: #333; }
-    h1 { font-size: 3em; color: #ff6f61; margin-bottom: 0.3em; }
-    p { font-size: 1.5em; color: #555; }
-    #gameArea { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
-    .button { padding: 20px 30px; margin: 15px; font-size: 1.5em; border-radius: 15px; cursor: pointer; border: none; transition: transform 0.2s, background-color 0.2s; }
-    .choice-button { min-width: 240px; background-color: #ffd966; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); }
-    .correct { background-color: #7ed321 !important; color: #fff !important; }
-    .wrong { background-color: #d0021b !important; color: #fff !important; }
-    #message, #score { font-size: 1.8em; margin: 25px; }
-    #startButton, #nextButton, #restartButton { padding: 15px 25px; font-size: 1.5em; margin: 25px; border-radius: 10px; cursor: pointer; background-color: #4a90e2; color: #fff; }
-    @media (max-width: 600px) { h1 { font-size: 2.5em; } p { font-size: 1.2em; } }
+    body {
+      font-family: 'Comic Neue', cursive, sans-serif;
+      text-align: center;
+      padding: 30px;
+      background: linear-gradient(135deg, #fdfbfb, #ebedee);
+      color: #333;
+    }
+    h1 {
+      font-size: 3em;
+      color: #ff6f61;
+      margin-bottom: 0.3em;
+    }
+    p {
+      font-size: 1.5em;
+      color: #555;
+    }
+    /* Container for the question and drop zone */
+    #questionContainer {
+      margin: 20px;
+      font-size: 1.8em;
+    }
+    #dropZone {
+      border: 2px dashed #aaa;
+      padding: 20px;
+      margin: 20px auto;
+      width: 300px;
+      height: 50px;
+      line-height: 50px;
+      font-size: 1.5em;
+      background-color: #fff;
+    }
+    /* Word bank styles */
+    #wordBank {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    .draggable-word {
+      padding: 10px 20px;
+      margin: 10px;
+      background-color: #ffd966;
+      border-radius: 10px;
+      cursor: grab;
+      font-size: 1.2em;
+      user-select: none;
+    }
+    .draggable-word:active {
+      cursor: grabbing;
+    }
+    #message, #score {
+      font-size: 1.8em;
+      margin: 25px;
+    }
+    #startButton, #nextButton, #restartButton {
+      padding: 15px 25px;
+      font-size: 1.5em;
+      margin: 25px;
+      border-radius: 10px;
+      cursor: pointer;
+      background-color: #4a90e2;
+      color: #fff;
+      border: none;
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 2.5em; }
+      p { font-size: 1.2em; }
+    }
   </style>
 </head>
 <body>
-  <h1>Spelling Game</h1>
-  <p>Choose the correctly spelled word!</p>
+  <h1>Fill in the Blanks Game</h1>
+  <p>Drag the correct word from the box below into the blank.</p>
   <button id="startButton" onclick="startGame()">Start Game</button>
-  <div id="gameArea"></div>
+  
+  <!-- Question & Drop Zone -->
+  <div id="questionContainer" style="display:none;">
+    <p id="questionText"></p>
+    <div id="dropZone" ondragover="dragOver(event)" ondrop="drop(event)">Drop here</div>
+  </div>
+  
+  <!-- Word Bank -->
+  <div id="wordBank" style="display:none;"></div>
+  
   <div id="message"></div>
   <div id="score"></div>
-  <button id="nextButton" onclick="nextWord()" style="display:none;">Next Word</button>
+  
+  <button id="nextButton" onclick="nextQuestion()" style="display:none;">Next Question</button>
   <button id="restartButton" onclick="startGame()" style="display:none;">Play Again</button>
-
-  <!-- Audio Elements -->
-  <audio id="bgMusic" src="background.mp3" loop></audio>
-  <audio id="correctSound" src="correct.mp3"></audio>
-  <audio id="wrongSound" src="wrong.mp3"></audio>
-
+  
   <script>
     let words = [];
     let shuffledWords = [];
     let currentIndex = 0;
     let score = 0;
     let currentWord = "";
-    let currentMisspelled = "";
 
-    // Load words from CSV file
+    // Load words from the CSV file (comma-separated)
     function loadWords() {
       fetch('words.csv')
         .then(response => response.text())
         .then(text => {
           words = text.split(',').map(word => word.trim());
-          document.getElementById("startButton").disabled = false; // Enable start button after words load
+          document.getElementById("startButton").disabled = false;
+          // Populate the word bank with draggable words
+          let wordBank = document.getElementById("wordBank");
+          wordBank.innerHTML = "";
+          words.forEach(word => {
+            let span = document.createElement("span");
+            span.className = "draggable-word";
+            span.innerText = word;
+            span.setAttribute("draggable", "true");
+            span.addEventListener("dragstart", dragStart);
+            wordBank.appendChild(span);
+          });
         })
         .catch(error => console.error("Error loading words:", error));
     }
 
-    // Start background music (must be triggered by user)
-    function playBackgroundMusic() {
-      let bgMusic = document.getElementById("bgMusic");
-      bgMusic.volume = 0.5; // Adjust volume
-      bgMusic.play().catch(error => console.log("BG Music play error:", error));
+    // Start the game: reset state and show the first question.
+    function startGame() {
+      if (words.length === 0) {
+        alert("Words are still loading. Please wait.");
+        return;
+      }
+      currentIndex = 0;
+      score = 0;
+      document.getElementById("score").innerText = "";
+      document.getElementById("message").innerText = "";
+      document.getElementById("startButton").style.display = "none";
+      document.getElementById("restartButton").style.display = "none";
+      document.getElementById("nextButton").style.display = "none";
+      document.getElementById("questionContainer").style.display = "block";
+      document.getElementById("wordBank").style.display = "flex";
+      // Shuffle words so questions come in random order
+      shuffledWords = shuffleArray(words.slice());
+      nextQuestion();
     }
 
-    // Pause/resume music when tab visibility changes
-    document.addEventListener("visibilitychange", function() {
-      let bgMusic = document.getElementById("bgMusic");
-      if (document.hidden) {
-        bgMusic.pause();
-      } else {
-        bgMusic.play().catch(error => console.log("BG Music resume error:", error));
+    // Set up the next question (one question per word).
+    function nextQuestion() {
+      // Clear any previous feedback message and reset the drop zone.
+      document.getElementById("message").innerText = "";
+      document.getElementById("nextButton").style.display = "none";
+      
+      let dropZone = document.getElementById("dropZone");
+      dropZone.innerText = "Drop here";
+      dropZone.style.backgroundColor = "#fff";
+      dropZone.style.pointerEvents = "auto"; // enable dropping
+      
+      if (currentIndex >= shuffledWords.length) {
+        document.getElementById("score").innerText = "Game Over! Your score: " + score + " out of " + shuffledWords.length;
+        document.getElementById("restartButton").style.display = "inline-block";
+        document.getElementById("questionContainer").style.display = "none";
+        return;
       }
-    });
+      
+      // Set the current correct word.
+      currentWord = shuffledWords[currentIndex];
+      document.getElementById("questionText").innerText = "Fill in the blank with the correct word:";
+    }
 
-    // Shuffle an array
+    // Drag start event for draggable words.
+    function dragStart(e) {
+      e.dataTransfer.setData("text/plain", e.target.innerText);
+    }
+
+    // Allow dropping by preventing the default behavior.
+    function dragOver(e) {
+      e.preventDefault();
+    }
+
+    // Handle the drop event on the blank.
+    function drop(e) {
+      e.preventDefault();
+      let droppedWord = e.dataTransfer.getData("text/plain");
+      // Disable further drops until the next question.
+      document.getElementById("dropZone").style.pointerEvents = "none";
+      checkAnswer(droppedWord);
+    }
+
+    // Check if the dropped word is correct.
+    function checkAnswer(selectedWord) {
+      let dropZone = document.getElementById("dropZone");
+      if (selectedWord === currentWord) {
+        dropZone.innerText = selectedWord;
+        dropZone.style.backgroundColor = "#7ed321"; // green for correct
+        document.getElementById("message").innerText = "Correct! Great job!";
+        score++;
+      } else {
+        dropZone.innerText = selectedWord;
+        dropZone.style.backgroundColor = "#d0021b"; // red for wrong
+        document.getElementById("message").innerText = "Oops! The correct word is: " + currentWord;
+      }
+      currentIndex++;
+      document.getElementById("score").innerText = "Score: " + score;
+      document.getElementById("nextButton").style.display = "inline-block";
+    }
+
+    // Fisher-Yates shuffle to randomize the word order.
     function shuffleArray(array) {
       for (let i = array.length - 1; i > 0; i--) {
         let j = Math.floor(Math.random() * (i + 1));
@@ -79,95 +214,8 @@
       return array;
     }
 
-    // Generate a misspelled version of the word
-    function generateMisspelling(word) {
-      if (word.length < 2) return word;
-      let misspelled = word;
-      let attempts = 0;
-      do {
-        let letters = word.split('');
-        let index = Math.floor(Math.random() * (letters.length - 1));
-        let temp = letters[index];
-        letters[index] = letters[index + 1];
-        letters[index + 1] = temp;
-        misspelled = letters.join('');
-      } while (misspelled === word || words.includes(misspelled));
-      return misspelled;
-    }
-
-    // Start the game
-    function startGame() {
-      if (words.length === 0) {
-        alert("Words are still loading. Please wait.");
-        return;
-      }
-
-      document.getElementById("startButton").style.display = "none";
-      playBackgroundMusic(); // ✅ Start music only after user clicks
-
-      currentIndex = 0;
-      score = 0;
-      document.getElementById("score").innerText = "";
-      document.getElementById("message").innerText = "";
-      document.getElementById("restartButton").style.display = "none";
-      document.getElementById("nextButton").style.display = "none";
-
-      shuffledWords = shuffleArray(words.slice());
-      nextWord();
-    }
-
-    // Display next word choices
-    function nextWord() {
-      document.getElementById("message").innerText = "";
-      document.getElementById("nextButton").style.display = "none";
-
-      if (currentIndex >= shuffledWords.length) {
-        document.getElementById("score").innerText = "Game Over! Your score: " + score + " out of " + shuffledWords.length;
-        document.getElementById("restartButton").style.display = "inline-block";
-        document.getElementById("gameArea").innerHTML = "";
-        return;
-      }
-
-      currentWord = shuffledWords[currentIndex];
-      currentMisspelled = generateMisspelling(currentWord);
-      let choices = Math.random() < 0.5 ? [currentWord, currentMisspelled] : [currentMisspelled, currentWord];
-
-      let gameArea = document.getElementById("gameArea");
-      gameArea.innerHTML = "";
-      choices.forEach(choice => {
-        let btn = document.createElement("button");
-        btn.className = "button choice-button";
-        btn.innerText = choice;
-        btn.onclick = function() { checkAnswer(choice, btn); };
-        gameArea.appendChild(btn);
-      });
-    }
-
-    // Check answer and play sound
-    function checkAnswer(selected, buttonClicked) {
-      let buttons = document.querySelectorAll(".choice-button");
-      buttons.forEach(btn => btn.disabled = true);
-
-      if (selected === currentWord) {
-        buttonClicked.classList.add("correct");
-        document.getElementById("message").innerText = "Correct! Great job!";
-        score++;
-        document.getElementById("correctSound").play().catch(error => console.log("Correct sound error:", error));
-      } else {
-        buttonClicked.classList.add("wrong");
-        buttons.forEach(btn => {
-          if (btn.innerText === currentWord) {
-            btn.classList.add("correct");
-          }
-        });
-        document.getElementById("message").innerText = "Oops! The correct spelling is: " + currentWord;
-        document.getElementById("wrongSound").play().catch(error => console.log("Wrong sound error:", error));
-      }
-      currentIndex++;
-      document.getElementById("nextButton").style.display = "inline-block";
-    }
-
-    loadWords(); // Load words when page loads
+    // Load words when the page loads.
+    loadWords();
   </script>
 </body>
 </html>
