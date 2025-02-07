@@ -83,7 +83,8 @@
   
   <!-- Question & Drop Zone -->
   <div id="questionContainer" style="display:none;">
-    <p id="questionText"></p>
+    <!-- Fallback text is provided here for debugging -->
+    <p id="questionText">Fill in the blank with the correct word:</p>
     <div id="dropZone" ondragover="dragOver(event)" ondrop="drop(event)">Drop here</div>
   </div>
   
@@ -165,6 +166,7 @@
       
       // Set the current correct word.
       currentWord = shuffledWords[currentIndex];
+      // Update the question text.
       document.getElementById("questionText").innerText = "Fill in the blank with the correct word:";
     }
 
