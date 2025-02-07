@@ -83,9 +83,8 @@
   
   <!-- Question & Drop Zone -->
   <div id="questionContainer" style="display:none;">
-    <!-- Fallback text is provided here for debugging -->
-    <p id="questionText">Fill in the blank with the correct word:</p>
-    <div id="dropZone" ondragover="dragOver(event)" ondrop="drop(event)">Drop here</div>
+    <p id="questionText">Fill in the blank:</p>
+    <div id="dropZone" ondragover="dragOver(event)" ondrop="drop(event)">_ _ _ _ _</div>
   </div>
   
   <!-- Word Bank -->
@@ -141,21 +140,20 @@
       document.getElementById("nextButton").style.display = "none";
       document.getElementById("questionContainer").style.display = "block";
       document.getElementById("wordBank").style.display = "flex";
-      // Shuffle words so questions come in random order
+      // Shuffle words so each turn is random.
       shuffledWords = shuffleArray(words.slice());
       nextQuestion();
     }
 
-    // Set up the next question (one question per word).
+    // Set up the next question using one word from the CSV file.
     function nextQuestion() {
-      // Clear any previous feedback message and reset the drop zone.
+      // Clear any previous feedback and reset the drop zone.
       document.getElementById("message").innerText = "";
       document.getElementById("nextButton").style.display = "none";
       
       let dropZone = document.getElementById("dropZone");
-      dropZone.innerText = "Drop here";
       dropZone.style.backgroundColor = "#fff";
-      dropZone.style.pointerEvents = "auto"; // enable dropping
+      dropZone.style.pointerEvents = "auto"; // allow drop
       
       if (currentIndex >= shuffledWords.length) {
         document.getElementById("score").innerText = "Game Over! Your score: " + score + " out of " + shuffledWords.length;
@@ -164,10 +162,21 @@
         return;
       }
       
-      // Set the current correct word.
+      // Choose the current word.
       currentWord = shuffledWords[currentIndex];
-      // Update the question text.
-      document.getElementById("questionText").innerText = "Fill in the blank with the correct word:";
+      
+      // Create a blank using underscores (one per letter).
+      let blank = "";
+      for (let i = 0; i < currentWord.length; i++) {
+        blank += "_ ";
+      }
+      
+      // Update question text to provide a hint (number of letters).
+      document.getElementById("questionText").innerText = 
+        "This word has " + currentWord.length + " letters. Drag the correct word into the blank:";
+      
+      // Set the drop zone to show the blank.
+      dropZone.innerText = blank.trim();
     }
 
     // Drag start event for draggable words.
@@ -175,12 +184,12 @@
       e.dataTransfer.setData("text/plain", e.target.innerText);
     }
 
-    // Allow dropping by preventing the default behavior.
+    // Allow dropping by preventing default.
     function dragOver(e) {
       e.preventDefault();
     }
 
-    // Handle the drop event on the blank.
+    // Handle the drop event on the drop zone.
     function drop(e) {
       e.preventDefault();
       let droppedWord = e.dataTransfer.getData("text/plain");
@@ -189,7 +198,7 @@
       checkAnswer(droppedWord);
     }
 
-    // Check if the dropped word is correct.
+    // Check if the dragged word is correct.
     function checkAnswer(selectedWord) {
       let dropZone = document.getElementById("dropZone");
       if (selectedWord === currentWord) {
@@ -200,14 +209,14 @@
       } else {
         dropZone.innerText = selectedWord;
         dropZone.style.backgroundColor = "#d0021b"; // red for wrong
-        document.getElementById("message").innerText = "Oops! The correct word is: " + currentWord;
+        document.getElementById("message").innerText = "Oops! The correct word was: " + currentWord;
       }
       currentIndex++;
       document.getElementById("score").innerText = "Score: " + score;
       document.getElementById("nextButton").style.display = "inline-block";
     }
 
-    // Fisher-Yates shuffle to randomize the word order.
+    // Fisher-Yates shuffle.
     function shuffleArray(array) {
       for (let i = array.length - 1; i > 0; i--) {
         let j = Math.floor(Math.random() * (i + 1));
